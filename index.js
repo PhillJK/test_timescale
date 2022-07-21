@@ -17,7 +17,7 @@ async function main() {
 		const milliseconds = currentDay - startOfTheYear;
 		const hours = Math.ceil(milliseconds / 3_600_000);
 
-		await client.connect();
+		const data = [];
 
 		for (let hour = 0; hour < hours; hour++) {
 			for (let userIdx = 0; userIdx < 2; userIdx++) {
@@ -36,7 +36,8 @@ async function main() {
 
 					const session_id = `${random_number}${random_letter}`;
 
-					const query = `INSERT INTO accounting (user_mac,
+					const params = {
+						user: userIdx === 0 ? user : user2,
 						hotspot,
 						session_id,
 						end_at,
@@ -49,33 +50,17 @@ async function main() {
 						session_time,
 						start_at,
 						user_ip,
-						is_new) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)`;
+						is_new: hour > 0 && i > 0 ? false : true,
+					};
 
-					const params = [
-						userIdx === 0 ? user : user2,
-						hotspot,
-						session_id,
-						end_at,
-						input_bytes,
-						input_packets,
-						ip,
-						nas,
-						output_packets,
-						output_bytes,
-						session_time,
-						start_at,
-						user_ip,
-						hour > 0 ? false : true,
-					];
-
-					await client.query(query, params);
+					data.push(params);
 				}
 			}
+
+			await sql`INSERT INTO accounting ${sql(data)}`;
 		}
 	} catch (error) {
 		console.log(error);
-	} finally {
-		await client.end();
 	}
 }
 
